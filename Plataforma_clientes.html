@@ -1,0 +1,2191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoAudit EC | Autodiagnóstico de Cumplimiento Ambiental (COA / RCOA / TULSMA)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome para iconografía corporativa -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Chart.js para gráficos ejecutivos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              900: '#0B1F3A', // Azul marino profundo corporativo
+              800: '#132F54',
+              700: '#1B4374',
+              600: '#255896',
+              100: '#EBF2FA',
+              50: '#F5F8FC',
+            },
+            forest: {
+              800: '#14452F',
+              700: '#1B5E40',
+              600: '#237A53',
+              50: '#EEF7F3',
+            },
+            semaforo: {
+              verde: '#10B981',
+              verdeBg: '#ECFDF5',
+              verdeBorder: '#A7F3D0',
+              verdeText: '#065F46',
+              amarillo: '#F59E0B',
+              amarilloBg: '#FFFBEB',
+              amarilloBorder: '#FDE68A',
+              amarilloText: '#92400E',
+              rojo: '#EF4444',
+              rojoBg: '#FEF2F2',
+              rojoBorder: '#FECACA',
+              rojoText: '#991B1B',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #F8FAFC;
+      color: #1E293B;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Transiciones suaves */
+    .tab-panel {
+      animation: fadeIn 0.25s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Estilos de impresión profesional para el Reporte Ejecutivo */
+    @media print {
+      body {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        font-size: 11pt;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .print-container {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .page-break-before {
+        page-break-before: always;
+      }
+      .avoid-break {
+        break-inside: avoid;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Notificación Toast Flotante -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 no-print"></div>
+
+  <!-- BARRA SUPERIOR CORPORATIVA (MODO EMPRESA EXCLUSIVO) -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <!-- Logo y Título -->
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-brand-900 flex items-center justify-center text-white shadow-xs shrink-0">
+          <i class="fa-solid fa-leaf text-emerald-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-brand-900 text-base sm:text-lg tracking-tight truncate">EcoAudit<span class="text-forest-600">EC</span></span>
+            <span class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-forest-800 border border-emerald-200 shrink-0">Autodiagnóstico Empresarial</span>
+          </div>
+          <p id="header-brand-subtitle" class="text-[11px] text-slate-500 hidden sm:block truncate">Portal de Autodiagnóstico Ambiental • COA • RCOA • TULSMA</p>
+        </div>
+      </div>
+
+      <!-- Acción Rápida -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="resetAllData()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition cursor-pointer" title="Limpiar formulario e iniciar nueva evaluación">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>Reiniciar Evaluación</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Progreso / Indicador Semáforo en Vivo -->
+    <div class="bg-slate-50 border-t border-slate-200/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-3">
+          <span class="text-slate-500 font-medium">Estado Preliminar:</span>
+          <div id="live-status-pill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-semibold bg-slate-200 text-slate-700">
+            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+            Pendiente de evaluación
+          </div>
+        </div>
+        <div class="flex items-center gap-4 text-slate-600">
+          <span>Cumplimiento PMA: <strong id="top-pma-score" class="text-brand-900">0%</strong></span>
+          <span class="hidden sm:inline text-slate-300">|</span>
+          <span class="hidden sm:inline">No Cumple (NC): <strong id="top-nc-count" class="text-red-600">0</strong></span>
+          <span class="hidden sm:inline">LMP Excedidos: <strong id="top-lmp-exceed" class="text-red-600">0</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- BANNER DE BIENVENIDA PARA EMPRESAS -->
+    <div class="mb-6 bg-gradient-to-r from-brand-900 via-brand-800 to-forest-800 rounded-2xl p-6 text-white shadow-sm no-print">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div class="space-y-2 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 text-xs font-semibold">
+            <i class="fa-solid fa-shield-halved"></i> Herramienta Gratuita de Autodiagnóstico Ambiental • Ecuador
+          </div>
+          <h1 class="font-display font-bold text-xl sm:text-2xl leading-tight">
+            Evalúe en 5 minutos si su empresa cumple con la Normativa Ambiental vigente y evite sanciones del MAATE
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            Complete los datos básicos de su operación, verifique los 8 subplanes de su Plan de Manejo Ambiental (PMA) y obtenga de inmediato su <strong>Reporte Ejecutivo con Semáforo de Riesgo (COA / RCOA / TULSMA)</strong>.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 shrink-0 text-xs">
+          <div class="bg-white/10 backdrop-blur-xs rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-emerald-400 text-brand-900 font-bold flex items-center justify-center shrink-0">1</span>
+            <span>Ingrese datos de su planta o proyecto</span>
+          </div>
+          <div class="bg-white/10 backdrop-blur-xs rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-emerald-400 text-brand-900 font-bold flex items-center justify-center shrink-0">2</span>
+            <span>Marque Cumple / No Cumple en su PMA</span>
+          </div>
+          <div class="bg-white/10 backdrop-blur-xs rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-emerald-400 text-brand-900 font-bold flex items-center justify-center shrink-0">3</span>
+            <span>Descargue su informe y solicite asesoría</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navegación por Pasos (Wizard Tabs) -->
+    <nav class="bg-white rounded-2xl border border-slate-200 p-1.5 shadow-xs mb-6 grid grid-cols-2 lg:grid-cols-4 gap-1.5 no-print" aria-label="Pasos de evaluación">
+      <button onclick="switchTab(1)" id="tab-btn-1" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-left transition cursor-pointer bg-brand-900 text-white">
+        <span class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+        <div class="min-w-0">
+          <p class="text-xs font-bold truncate">Datos de su Empresa</p>
+          <p class="text-[11px] opacity-80 truncate">Identificación y Permiso</p>
+        </div>
+      </button>
+
+      <button onclick="switchTab(2)" id="tab-btn-2" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-left transition cursor-pointer text-slate-600 hover:bg-slate-50">
+        <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+        <div class="min-w-0">
+          <p class="text-xs font-bold truncate">Evaluación PMA</p>
+          <p class="text-[11px] text-slate-400 truncate">8 Subplanes TULSMA/RCOA</p>
+        </div>
+      </button>
+
+      <button onclick="switchTab(3)" id="tab-btn-3" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-left transition cursor-pointer text-slate-600 hover:bg-slate-50">
+        <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+        <div class="min-w-0">
+          <p class="text-xs font-bold truncate">Monitoreos (Opcional)</p>
+          <p class="text-[11px] text-slate-400 truncate">Agua, Aire y Ruido (LMP)</p>
+        </div>
+      </button>
+
+      <button onclick="switchTab(4)" id="tab-btn-4" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-left transition cursor-pointer text-slate-600 hover:bg-slate-50">
+        <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold shrink-0">
+          <i class="fa-solid fa-chart-pie"></i>
+        </span>
+        <div class="min-w-0">
+          <p class="text-xs font-bold truncate">Diagnóstico y Reporte</p>
+          <p class="text-[11px] text-slate-400 truncate">Riesgo COA y Plan Acción</p>
+        </div>
+      </button>
+    </nav>
+
+    <!-- ===================================================================== -->
+    <!-- PASO 1: DATOS GENERALES DEL ESTABLECIMIENTO / PROYECTO                -->
+    <!-- ===================================================================== -->
+    <section id="panel-1" class="tab-panel space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="font-display font-bold text-lg text-brand-900">1. Caracterización de su Establecimiento / Proyecto</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Información base para determinar el marco normativo aplicable según el Código Orgánico del Ambiente (COA).</p>
+          </div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-brand-50 text-brand-700 border border-brand-100">
+            <i class="fa-solid fa-scale-balanced"></i> Base Legal: COA / RCOA / AM 061
+          </span>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Razón Social -->
+          <div class="lg:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Razón Social / Nombre de la Empresa o Proyecto <span class="text-red-500">*</span></label>
+            <input type="text" id="proj-name" oninput="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700" placeholder="Ej. Procesadora de Alimentos del Pacífico S.A. - Planta Durán" />
+          </div>
+
+          <!-- RUC -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">RUC de la Empresa</label>
+            <input type="text" id="proj-ruc" maxlength="13" oninput="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700" placeholder="Ej. 0992847561001" />
+          </div>
+
+          <!-- Sector Productivo -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Sector Productivo</label>
+            <select id="proj-sector" onchange="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-700">
+              <option value="Industrial / Manufactura">Industrial / Manufactura</option>
+              <option value="Agroindustrial / Alimenticio">Agroindustrial / Alimenticio</option>
+              <option value="Comercial y Servicios">Comercial y Servicios</option>
+              <option value="Construcción e Infraestructura">Construcción e Infraestructura</option>
+              <option value="Hidrocarburos / Minería / Energía">Hidrocarburos / Minería / Energía</option>
+              <option value="Salud / Laboratorios">Salud / Laboratorios</option>
+            </select>
+          </div>
+
+          <!-- Tipo de Regularización Ambiental -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Autorización Administrativa Ambiental (SUIA)</label>
+            <select id="proj-permit" onchange="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-700">
+              <option value="Licencia Ambiental (Alto Impacto)">Licencia Ambiental (Medio / Alto Impacto)</option>
+              <option value="Registro Ambiental (Bajo Impacto)">Registro Ambiental (Bajo Impacto)</option>
+              <option value="Certificado Ambiental (Impacto Mínimo)">Certificado Ambiental (Impacto Mínimo)</option>
+              <option value="En proceso de Regularización / Sin Permiso">Sin Regularización Ambiental (Irregular)</option>
+            </select>
+          </div>
+
+          <!-- Capacidad Económica (Referencia COA Art. 319 para cálculo de multas) -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tamaño / Capacidad Económica (Art. 319 COA)</label>
+            <select id="proj-capacity" onchange="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-700">
+              <option value="A">Grupo A (Microempresa / Ingresos bajos)</option>
+              <option value="B">Grupo B (Pequeña empresa)</option>
+              <option value="C" selected>Grupo C (Mediana empresa)</option>
+              <option value="D">Grupo D (Gran empresa / Alto capital)</option>
+            </select>
+          </div>
+
+          <!-- Provincia / Cantón -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Provincia / Cantón</label>
+            <input type="text" id="proj-location" oninput="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700" placeholder="Ej. Guayas / Durán" />
+          </div>
+
+          <!-- Código SUIA / Resolución -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Código Proyecto SUIA / Nro. Resolución (Opcional)</label>
+            <input type="text" id="proj-suia" oninput="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700" placeholder="Ej. MAATE-SUIA-RA-2023-01948" />
+          </div>
+
+          <!-- Fecha de Evaluación -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Fecha de Autodiagnóstico</label>
+            <input type="date" id="proj-date" oninput="updateLiveState()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700" />
+          </div>
+
+          <!-- Datos de contacto del solicitante -->
+          <div class="lg:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Persona Responsable / Cargo (Opcional)</label>
+            <input type="text" id="proj-contact-person" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700" placeholder="Ej. Ing. Carlos Mendoza - Jefe de Seguridad, Salud y Ambiente" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Teléfono / Correo de Contacto (Opcional)</label>
+            <input type="text" id="proj-contact-info" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700" placeholder="Ej. 0991234567 / ambiente@empresa.ec" />
+          </div>
+        </div>
+
+        <!-- Nota informativa legal -->
+        <div class="mx-6 mb-6 p-4 rounded-xl bg-brand-50 border border-brand-100 flex items-start gap-3">
+          <i class="fa-solid fa-circle-info text-brand-700 mt-0.5"></i>
+          <div class="text-xs text-slate-700 leading-relaxed">
+            <strong>Criterio Legal Ecuatoriano (COA Art. 316-318 / RCOA Art. 488-495):</strong> Cada obligación de su Plan de Manejo Ambiental (PMA) se evalúa bajo criterio de conformidad (<strong>Cumple [C]</strong> o <strong>No Cumple [NC]</strong>), excluyendo del cálculo aquellas que técnicamente <strong>No Aplican [N/A]</strong>. Los incumplimientos (NC) y la superación de Límites Máximos Permisibles (LMP) determinan el nivel de exposición sancionatoria ante el MAATE o Gobiernos Autónomos Descentralizados (GAD) acreditados.
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+          <button onclick="switchTab(2)" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-brand-900 text-white hover:bg-brand-800 transition cursor-pointer">
+            Continuar a Evaluación del PMA <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- PASO 2: EVALUACIÓN MANUAL DEL PLAN DE MANEJO AMBIENTAL (PMA)          -->
+    <!-- ===================================================================== -->
+    <section id="panel-2" class="tab-panel hidden space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-display font-bold text-lg text-brand-900">2. Verificación de Cumplimiento de su Plan de Manejo Ambiental (PMA)</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Marque la situación actual de su empresa en cada uno de los 8 subplanes estándar del TULSMA / RCOA.</p>
+          </div>
+
+          <!-- Leyenda Semáforo -->
+          <div class="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+            <span class="px-2.5 py-1 rounded-lg bg-semaforo-verdeBg text-semaforo-verdeText border border-semaforo-verdeBorder">
+              <i class="fa-solid fa-circle text-semaforo-verde mr-1"></i> C: Cumple
+            </span>
+            <span class="px-2.5 py-1 rounded-lg bg-semaforo-rojoBg text-semaforo-rojoText border border-semaforo-rojoBorder">
+              <i class="fa-solid fa-circle text-semaforo-rojo mr-1"></i> NC: No Cumple
+            </span>
+            <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
+              N/A: No Aplica
+            </span>
+          </div>
+        </div>
+
+        <!-- Barra de acciones rápidas PMA -->
+        <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs text-slate-600">
+            Progreso evaluado: <strong id="pma-evaluated-count">0</strong> de <strong id="pma-total-count">16</strong> criterios obligatorios
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="markAllPMA('C')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 transition cursor-pointer">
+              Marcar todo "Cumple"
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor dinámico de los 8 Subplanes del PMA -->
+        <div id="pma-subplans-container" class="divide-y divide-slate-200">
+          <!-- Renderizado por JS -->
+        </div>
+
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+          <button onclick="switchTab(1)" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition cursor-pointer">
+            <i class="fa-solid fa-arrow-left"></i> Anterior
+          </button>
+          <button onclick="switchTab(3)" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-brand-900 text-white hover:bg-brand-800 transition cursor-pointer">
+            Continuar a Monitoreos Ambientales <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- PASO 3: MONITOREOS AMBIENTALES (AGUA, AIRE Y RUIDO - OPCIONAL)        -->
+    <!-- ===================================================================== -->
+    <section id="panel-3" class="tab-panel hidden space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 class="font-display font-bold text-lg text-brand-900">3. Evaluación de Monitoreos Ambientales (Opcional)</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Si dispone de resultados de laboratorio (Agua, Aire o Ruido), suba el archivo o digite los valores para verificar si cumplen los Límites Máximos Permisibles (TULSMA Libro VI).</p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-forest-800 border border-emerald-200">
+              <i class="fa-solid fa-flask-vial"></i> TULSMA Anexos 1, 4 y 5
+            </span>
+          </div>
+
+          <!-- Sub-pestañas de Matriz Ambiental -->
+          <div class="mt-5 flex flex-wrap gap-2">
+            <button onclick="switchMatrix('agua')" id="mat-btn-agua" class="mat-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-brand-900 text-white transition cursor-pointer">
+              <i class="fa-solid fa-droplet text-sky-300"></i> Agua / Descargas (Anexo 1)
+              <span id="badge-mat-agua" class="ml-1 px-1.5 py-0.5 rounded-md text-[10px] bg-white/20">Sin datos</span>
+            </button>
+            <button onclick="switchMatrix('aire')" id="mat-btn-aire" class="mat-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">
+              <i class="fa-solid fa-wind text-slate-500"></i> Aire / Emisiones (Anexo 4)
+              <span id="badge-mat-aire" class="ml-1 px-1.5 py-0.5 rounded-md text-[10px] bg-slate-200 text-slate-600">Sin datos</span>
+            </button>
+            <button onclick="switchMatrix('ruido')" id="mat-btn-ruido" class="mat-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">
+              <i class="fa-solid fa-volume-high text-slate-500"></i> Ruido Ambiente (Anexo 5)
+              <span id="badge-mat-ruido" class="ml-1 px-1.5 py-0.5 rounded-md text-[10px] bg-slate-200 text-slate-600">Sin datos</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================== MATRIZ AGUA (TULSMA ANEXO 1) ==================== -->
+        <div id="matrix-agua" class="p-6 space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5">
+              <div class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center hover:border-brand-600 hover:bg-brand-50/40 transition relative">
+                <input type="file" id="file-agua" accept=".pdf,.csv,.txt,.xlsx,.xls" onchange="handleFileUpload('agua', this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                <div class="w-11 h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mx-auto mb-3">
+                  <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                </div>
+                <p class="text-xs font-bold text-slate-800">Subir Informe de Laboratorio (Agua)</p>
+                <p class="text-[11px] text-slate-500 mt-1">Arrastre o seleccione PDF, CSV o TXT con resultados de monitoreo.</p>
+                <span class="inline-block mt-3 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-brand-700 shadow-2xs">Seleccionar archivo</span>
+              </div>
+              <div id="upload-feedback-agua" class="mt-3 hidden"></div>
+            </div>
+
+            <div class="lg:col-span-7 flex flex-col justify-between bg-slate-50 rounded-2xl p-5 border border-slate-200">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Configuración Normativa (TULSMA Libro VI, Anexo 1)</h3>
+                  <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="active-agua" onchange="evaluateAll()" class="rounded text-brand-900 focus:ring-brand-700" />
+                    Incluir en Diagnóstico
+                  </label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Cuerpo Receptor de Descarga</label>
+                    <select id="agua-receptor" onchange="onNormConfigChange()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs bg-white font-medium">
+                      <option value="dulce">Tabla 9: Descarga a Cuerpo de Agua Dulce</option>
+                      <option value="alcantarillado">Tabla 8: Descarga al Sistema de Alcantarillado Público</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Laboratorio Acreditado SAE / Fecha</label>
+                    <input type="text" id="agua-lab" oninput="evaluateAll()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs bg-white" placeholder="Ej. Lab. ANNALAB - Inf. 2026-089" />
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3">
+                <i class="fa-solid fa-circle-exclamation text-amber-500 mr-1"></i> Puede ingresar decimales con punto (<code>.</code>) o coma (<code>,</code>) directamente en la tabla inferior.
+              </p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-600">
+                  <th class="py-3 px-4">Parámetro Fisicoquímico</th>
+                  <th class="py-3 px-4">Unidad</th>
+                  <th class="py-3 px-4">Límite Máximo Permisible (LMP)</th>
+                  <th class="py-3 px-4 w-40">Resultado Medido</th>
+                  <th class="py-3 px-4">Estado Semáforo</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-agua" class="divide-y divide-slate-200 text-xs">
+                <!-- Renderizado por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ==================== MATRIZ AIRE (TULSMA ANEXO 4) ==================== -->
+        <div id="matrix-aire" class="p-6 space-y-6 hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5">
+              <div class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center hover:border-brand-600 hover:bg-brand-50/40 transition relative">
+                <input type="file" id="file-aire" accept=".pdf,.csv,.txt,.xlsx,.xls" onchange="handleFileUpload('aire', this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3">
+                  <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                </div>
+                <p class="text-xs font-bold text-slate-800">Subir Informe de Calidad de Aire / Emisiones</p>
+                <p class="text-[11px] text-slate-500 mt-1">Arrastre o seleccione PDF, CSV o TXT con resultados de monitoreo.</p>
+                <span class="inline-block mt-3 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-brand-700 shadow-2xs">Seleccionar archivo</span>
+              </div>
+              <div id="upload-feedback-aire" class="mt-3 hidden"></div>
+            </div>
+
+            <div class="lg:col-span-7 flex flex-col justify-between bg-slate-50 rounded-2xl p-5 border border-slate-200">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Norma de Calidad del Aire Ambiente (TULSMA Libro VI, Anexo 4)</h3>
+                  <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="active-aire" onchange="evaluateAll()" class="rounded text-brand-900 focus:ring-brand-700" />
+                    Incluir en Diagnóstico
+                  </label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Punto de Monitoreo</label>
+                    <input type="text" id="aire-punto" oninput="evaluateAll()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs bg-white" placeholder="Ej. Barlovento / Sotavento Lindero Norte" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Laboratorio / Fecha Monitoreo</label>
+                    <input type="text" id="aire-lab" oninput="evaluateAll()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs bg-white" placeholder="Ej. Lab. AMBIENTEC - Feb 2026" />
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3">
+                <i class="fa-solid fa-circle-info text-brand-600 mr-1"></i> Valores referenciales de concentraciones máximas permitidas en aire ambiente (24 horas / promedio horario según Anexo 4).
+              </p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-600">
+                  <th class="py-3 px-4">Contaminante Criterio</th>
+                  <th class="py-3 px-4">Unidad</th>
+                  <th class="py-3 px-4">Límite Máximo Permisible (LMP)</th>
+                  <th class="py-3 px-4 w-40">Concentración Medida</th>
+                  <th class="py-3 px-4">Estado Semáforo</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-aire" class="divide-y divide-slate-200 text-xs">
+                <!-- Renderizado por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ==================== MATRIZ RUIDO (TULSMA ANEXO 5) ==================== -->
+        <div id="matrix-ruido" class="p-6 space-y-6 hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5">
+              <div class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center hover:border-brand-600 hover:bg-brand-50/40 transition relative">
+                <input type="file" id="file-ruido" accept=".pdf,.csv,.txt,.xlsx,.xls" onchange="handleFileUpload('ruido', this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
+                  <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                </div>
+                <p class="text-xs font-bold text-slate-800">Subir Informe de Ruido Ambiente (Sonometría)</p>
+                <p class="text-[11px] text-slate-500 mt-1">Arrastre o seleccione PDF, CSV o TXT con niveles LKeq (dBA).</p>
+                <span class="inline-block mt-3 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-brand-700 shadow-2xs">Seleccionar archivo</span>
+              </div>
+              <div id="upload-feedback-ruido" class="mt-3 hidden"></div>
+            </div>
+
+            <div class="lg:col-span-7 flex flex-col justify-between bg-slate-50 rounded-2xl p-5 border border-slate-200">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Límites de Ruido Ambiente por Uso de Suelo (TULSMA Anexo 5, Tabla 1)</h3>
+                  <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="active-ruido" onchange="evaluateAll()" class="rounded text-brand-900 focus:ring-brand-700" />
+                    Incluir en Diagnóstico
+                  </label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Zonificación / Uso de Suelo Receptor</label>
+                    <select id="ruido-zona" onchange="onNormConfigChange()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs bg-white font-medium">
+                      <option value="hospitalario">Hospitalario y Educativo (55 dB Diurno / 45 dB Nocturno)</option>
+                      <option value="residencial">Residencial (55 dB Diurno / 45 dB Nocturno)</option>
+                      <option value="mixto">Equipamiento / Mixto (60 dB Diurno / 50 dB Nocturno)</option>
+                      <option value="comercial">Comercial (65 dB Diurno / 55 dB Nocturno)</option>
+                      <option value="industrial" selected>Industrial (70 dB Diurno / 65 dB Nocturno)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Equipo / Sonómetro Calibrado</label>
+                    <input type="text" id="ruido-lab" oninput="evaluateAll()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs bg-white" placeholder="Ej. Sonómetro Clase 1 - Lindero Sur" />
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3">
+                <i class="fa-solid fa-clock text-brand-600 mr-1"></i> Horario Diurno: 07h01 a 21h00 | Horario Nocturno: 21h01 a 07h00 (Nivel de Presión Sonora Equivalente Corregido LKeq).
+              </p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-600">
+                  <th class="py-3 px-4">Periodo de Medición</th>
+                  <th class="py-3 px-4">Unidad</th>
+                  <th class="py-3 px-4">Límite Máximo Permisible (LMP)</th>
+                  <th class="py-3 px-4 w-40">Nivel Medido (LKeq)</th>
+                  <th class="py-3 px-4">Estado Semáforo</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-ruido" class="divide-y divide-slate-200 text-xs">
+                <!-- Renderizado por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+          <button onclick="switchTab(2)" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition cursor-pointer">
+            <i class="fa-solid fa-arrow-left"></i> Volver al PMA
+          </button>
+          <button onclick="switchTab(4)" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-forest-700 text-white hover:bg-forest-800 transition shadow-xs cursor-pointer">
+            Generar Diagnóstico y Reporte Ejecutivo <i class="fa-solid fa-file-contract"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- PASO 4: DIAGNÓSTICO INTEGRAL Y REPORTE EJECUTIVO PARA DECISIONES       -->
+    <!-- ===================================================================== -->
+    <section id="panel-4" class="tab-panel hidden space-y-6">
+
+      <!-- Barra de herramientas del reporte (No imprimible) -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-forest-50 text-forest-700 flex items-center justify-center">
+            <i class="fa-solid fa-file-shield text-lg"></i>
+          </div>
+          <div>
+            <h2 class="font-display font-bold text-sm text-brand-900">Informe Técnico de Autodiagnóstico Ambiental</h2>
+            <p class="text-xs text-slate-500">Descargue su informe en PDF o envíe sus resultados a nuestros especialistas para asesoría.</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="copyExecutiveSummary()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition cursor-pointer">
+            <i class="fa-regular fa-copy"></i> Copiar Resumen
+          </button>
+          <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-brand-900 text-white hover:bg-brand-800 transition shadow-xs cursor-pointer">
+            <i class="fa-solid fa-print"></i> Imprimir / Guardar PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- BLOQUE DE CONVERSIÓN COMERCIAL PARA EMPRESAS (SOLICITAR ASESORÍA) -->
+      <div class="bg-gradient-to-r from-forest-800 to-brand-900 rounded-2xl p-6 text-white shadow-md no-print">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div class="space-y-1.5 max-w-2xl">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-400/20 text-emerald-300 uppercase tracking-wider">
+              <i class="fa-solid fa-headset"></i> Asesoría Técnica Especializada MAATE / SUIA
+            </span>
+            <h3 class="font-display font-bold text-lg sm:text-xl">
+              ¿Necesita subsanar estos hallazgos o regularizar su Plan de Manejo Ambiental?
+            </h3>
+            <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+              Envíe los resultados de este diagnóstico directamente a nuestro equipo de <strong>Consultores Ambientales Calificados</strong> para recibir una propuesta técnica y económica a la medida de su empresa.
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
+            <button type="button" onclick="sendDiagnosisViaWhatsApp()" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-emerald-500 text-brand-900 hover:bg-emerald-400 transition shadow-sm cursor-pointer">
+              <i class="fa-brands fa-whatsapp text-lg"></i> Enviar Diagnóstico por WhatsApp
+            </button>
+            <button type="button" onclick="sendDiagnosisViaEmail()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-white/15 text-white hover:bg-white/25 border border-white/20 transition cursor-pointer">
+              <i class="fa-regular fa-envelope"></i> Solicitar Cotización por Correo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENEDOR DEL REPORTE FORMAL IMPRIMIBLE -->
+      <div id="printable-report" class="print-container bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-8">
+
+        <!-- Encabezado Corporativo del Informe -->
+        <div class="border-b-2 border-brand-900 pb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 text-forest-700 font-bold text-xs uppercase tracking-wider mb-1">
+              <i class="fa-solid fa-shield-halved"></i> Informe de Autodiagnóstico de Cumplimiento Ambiental
+            </div>
+            <h1 id="rep-proj-name" class="font-display font-bold text-2xl text-brand-900">Establecimiento Evaluado (Sin Nombre)</h1>
+            <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
+              <span><strong>RUC:</strong> <span id="rep-ruc">No registrado</span></span>
+              <span><strong>Sector:</strong> <span id="rep-sector">-</span></span>
+              <span><strong>Ubicación:</strong> <span id="rep-location">Ecuador</span></span>
+              <span><strong>Permiso SUIA:</strong> <span id="rep-permit">-</span></span>
+            </div>
+            <div id="rep-contact-row" class="mt-1 text-xs text-slate-500 hidden">
+              <span><strong>Responsable Empresa:</strong> <span id="rep-contact-val">-</span></span>
+            </div>
+          </div>
+
+          <div class="sm:text-right bg-slate-50 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-slate-200 shrink-0">
+            <p id="rep-consultant-name" class="font-display font-bold text-sm text-brand-900"></p>
+            <p id="rep-consultant-reg" class="text-xs text-slate-500"></p>
+            <p class="text-xs text-slate-500 mt-1"><strong>Fecha Evaluación:</strong> <span id="rep-date">-</span></p>
+            <p class="text-[11px] text-slate-400">Código SUIA: <span id="rep-suia">N/A</span></p>
+          </div>
+        </div>
+
+        <!-- ALERTA SEMÁFORO PRINCIPAL Y EXPOSICIÓN SANCIONATORIA COA -->
+        <div id="rep-main-banner" class="rounded-2xl p-6 border-2 transition-all avoid-break">
+          <!-- Renderizado dinámicamente según el riesgo Verde/Amarillo/Rojo -->
+        </div>
+
+        <!-- Tarjetas KPI Ejecutivas -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 avoid-break">
+          <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+            <p class="text-[11px] font-semibold uppercase text-slate-500">Cumplimiento Global PMA</p>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span id="kpi-pma-pct" class="font-display font-bold text-3xl text-brand-900">0%</span>
+              <span id="kpi-pma-badge" class="px-2 py-0.5 rounded-md text-[10px] font-bold">N/A</span>
+            </div>
+            <p id="kpi-pma-detail" class="text-[11px] text-slate-500 mt-1">0 de 0 obligaciones cumplidas</p>
+          </div>
+
+          <div class="p-4 rounded-2xl border border-semaforo-verdeBorder bg-semaforo-verdeBg/50">
+            <p class="text-[11px] font-semibold uppercase text-semaforo-verdeText">Obligaciones Cumplidas (C)</p>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span id="kpi-c-count" class="font-display font-bold text-3xl text-semaforo-verde">0</span>
+              <i class="fa-solid fa-circle-check text-semaforo-verde text-lg"></i>
+            </div>
+            <p id="kpi-na-detail" class="text-[11px] text-semaforo-verdeText/80 mt-1">0 criterios No Aplica (N/A)</p>
+          </div>
+
+          <div class="p-4 rounded-2xl border border-semaforo-rojoBorder bg-semaforo-rojoBg/50">
+            <p class="text-[11px] font-semibold uppercase text-semaforo-rojoText">Incumplimientos PMA (NC)</p>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span id="kpi-nc-count" class="font-display font-bold text-3xl text-semaforo-rojo">0</span>
+              <i class="fa-solid fa-triangle-exclamation text-semaforo-rojo text-lg"></i>
+            </div>
+            <p id="kpi-nc-detail" class="text-[11px] text-semaforo-rojoText/80 mt-1">Requieren subsanación inmediata</p>
+          </div>
+
+          <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+            <p class="text-[11px] font-semibold uppercase text-slate-500">Parámetros LMP Excedidos</p>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span id="kpi-lmp-exceed" class="font-display font-bold text-3xl text-brand-900">0</span>
+              <i class="fa-solid fa-vial-circle-check text-slate-400 text-lg"></i>
+            </div>
+            <p id="kpi-lmp-detail" class="text-[11px] text-slate-500 mt-1">Monitoreos Agua, Aire y Ruido</p>
+          </div>
+        </div>
+
+        <!-- SECCIÓN DE GRÁFICOS EJECUTIVOS -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 avoid-break">
+          <div class="lg:col-span-7 p-5 rounded-2xl border border-slate-200 bg-white">
+            <h3 class="font-display font-bold text-sm text-brand-900 mb-1">Desempeño por Subplan del PMA (TULSMA / RCOA)</h3>
+            <p class="text-[11px] text-slate-500 mb-4">Porcentaje de cumplimiento alcanzado en cada componente evaluado.</p>
+            <div class="h-64">
+              <canvas id="chart-subplans"></canvas>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 p-5 rounded-2xl border border-slate-200 bg-white flex flex-col justify-between">
+            <div>
+              <h3 class="font-display font-bold text-sm text-brand-900 mb-1">Distribución de Hallazgos</h3>
+              <p class="text-[11px] text-slate-500 mb-4">Proporción de Conformidades vs. No Conformidades detectadas.</p>
+              <div class="h-52 flex items-center justify-center">
+                <canvas id="chart-findings"></canvas>
+              </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500 text-center">
+              Evaluación basada en criterios de Auditoría Ambiental de Cumplimiento (AAC).
+            </div>
+          </div>
+        </div>
+
+        <!-- ANÁLISIS DE RIESGO LEGAL Y MULTAS REFERENCIALES (COA ART. 316 - 320) -->
+        <div class="p-6 rounded-2xl border border-slate-200 bg-slate-50 space-y-4 avoid-break">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-brand-900 text-white flex items-center justify-center text-xs">
+                <i class="fa-solid fa-gavel"></i>
+              </div>
+              <div>
+                <h3 class="font-display font-bold text-sm text-brand-900">Análisis de Exposición Legal y Sancionatoria (Código Orgánico del Ambiente)</h3>
+                <p class="text-[11px] text-slate-500">Estimación referencial según Art. 316, 317, 318 y 319 del COA (SBU Ecuador 2026: $482 USD ref.)</p>
+              </div>
+            </div>
+            <span id="rep-coa-category" class="px-3 py-1 rounded-full text-xs font-bold bg-white border border-slate-300 text-brand-900">Grupo C</span>
+          </div>
+
+          <div id="rep-legal-analysis" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <!-- Renderizado por JS -->
+          </div>
+        </div>
+
+        <!-- RESUMEN DE MONITOREOS AMBIENTALES (SI FUERON EVALUADOS) -->
+        <div id="rep-monitoring-section" class="space-y-4 avoid-break">
+          <h3 class="font-display font-bold text-base text-brand-900 border-b border-slate-200 pb-2">
+            <i class="fa-solid fa-microscope text-forest-600 mr-1.5"></i> Resultados de Monitoreos Ambientales (Comparativa LMP TULSMA)
+          </h3>
+          <div id="rep-monitoring-content" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Renderizado por JS -->
+          </div>
+        </div>
+
+        <!-- HOJA DE RUTA / PLAN DE ACCIÓN RECOMENDADO -->
+        <div class="space-y-4 page-break-before">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+            <div>
+              <h3 class="font-display font-bold text-base text-brand-900">
+                <i class="fa-solid fa-list-check text-forest-600 mr-1.5"></i> Plan de Acción Correctivo y Preventivo Priorizado (Hoja de Ruta)
+              </h3>
+              <p class="text-xs text-slate-500">Acciones técnicas recomendadas para subsanar hallazgos y blindar la operación ante inspecciones del MAATE / GAD.</p>
+            </div>
+          </div>
+
+          <div id="rep-action-plan" class="space-y-3">
+            <!-- Renderizado por JS -->
+          </div>
+        </div>
+
+        <!-- BLOQUE DE CIERRE COMERCIAL Y FIRMA DEL CONSULTOR -->
+        <div class="mt-8 pt-6 border-t-2 border-slate-200 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 avoid-break">
+          <div class="max-w-xl space-y-1.5">
+            <p class="text-xs font-bold text-brand-900 uppercase tracking-wide">Nota de Alcance Técnico & Servicios de Consultoría</p>
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+              Este autodiagnóstico constituye una evaluación técnica preliminar de cumplimiento ambiental conforme al Código Orgánico del Ambiente (COA), su Reglamento (RCOA) y el TULSMA Libro VI. Para la ejecución de monitoreos acreditados SAE, actualización de Planes de Manejo Ambiental, Registro de Generador de Desechos Peligrosos o Auditorías Ambientales de Cumplimiento ante el SUIA, contáctenos para estructurar su propuesta técnica.
+            </p>
+            <p id="rep-consultant-contact" class="text-xs font-semibold text-forest-700 pt-1"></p>
+          </div>
+
+          <div class="w-full sm:w-64 text-center pt-6 sm:pt-0">
+            <div class="border-b border-slate-400 h-10 mb-2"></div>
+            <p id="rep-sign-name" class="text-xs font-bold text-brand-900"></p>
+            <p id="rep-sign-reg" class="text-[11px] text-slate-500"></p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER DISCRETO (NO IMPRIMIBLE) -->
+  <footer id="page-footer" class="bg-white border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-400 no-print">
+    EcoAudit EC • Portal de Autodiagnóstico Ambiental Empresarial (COA • RCOA • TULSMA Libro VI)
+  </footer>
+
+  <!-- ======================================================================= -->
+  <!-- LÓGICA DE APLICACIÓN                                                    -->
+  <!-- ======================================================================= -->
+  <script>
+    // =========================================================================
+    // CONFIGURACIÓN DE SU FIRMA CONSULTORA (EDITE ESTOS 4 CAMPOS CON SUS DATOS)
+    // =========================================================================
+    const CONSULTANT_PROFILE = {
+      name: 'EcoGestión & Consultoría Ambiental S.A.', // Nombre de su empresa o consultor
+      reg: 'MAATE-SUIA-0418-CI',                      // Su número de registro MAATE
+      phone: '+593 99 845 2190',                      // Su WhatsApp comercial (con código +593)
+      email: 'consultoria@ecoauditec.com'             // Su correo para recibir diagnósticos
+    };
+
+    // 1. ESTRUCTURA NORMATIVA DE LOS 8 SUBPLANES DEL PMA EN ECUADOR (TULSMA / RCOA)
+    const PMA_SUBPLANS = [
+      {
+        id: 'sp1',
+        code: 'Subplan 1',
+        title: 'Plan de Prevención y Mitigación de Impactos',
+        legalRef: 'RCOA Art. 435 / TULSMA Libro VI',
+        items: [
+          {
+            id: 'sp1_1',
+            question: 'Mantenimiento preventivo de maquinaria, equipos y sistemas de control ambiental (trampas de grasa, filtros, diques de contención).',
+            defaultAction: 'Implementar bitácoras verificables de mantenimiento preventivo y calibración de sistemas de control de emisiones/efluentes.'
+          },
+          {
+            id: 'sp1_2',
+            question: 'Impermeabilización y cubetos de contención (110% de volumen) en áreas de almacenamiento de combustibles, lubricantes y sustancias químicas.',
+            defaultAction: 'Construir o adecuar cubetos antiderrames impermeabilizados con capacidad mínima del 110% del tanque mayor y válvulas de drenaje cerradas.'
+          }
+        ]
+      },
+      {
+        id: 'sp2',
+        code: 'Subplan 2',
+        title: 'Plan de Manejo de Desechos (No Peligrosos, Peligrosos y Especiales)',
+        legalRef: 'COA Art. 224-238 / Acuerdo Ministerial 061 / NTE INEN 2266',
+        items: [
+          {
+            id: 'sp2_1',
+            question: 'Registro de Generador de Desechos Peligrosos y/o Especiales (RGD) vigente ante el MAATE y Declaración Anual presentada dentro de plazo.',
+            defaultAction: 'Tramitar inmediatamente el Registro de Generador de Desechos Peligrosos (RGD) en el sistema SUIA y presentar la Declaración Anual acumulada.'
+          },
+          {
+            id: 'sp2_2',
+            question: 'Almacenamiento temporal técnico de desechos peligrosos (etiquetado NTE INEN 2266, hojas MSDS, piso impermeable, acceso restringido) y entrega con Manifiestos Únicos a gestores autorizados.',
+            defaultAction: 'Adecuar bodega de desechos peligrosos conforme a NTE INEN 2266 y regularizar la entrega mediante Manifiestos Únicos con gestores ambientales calificados.'
+          }
+        ]
+      },
+      {
+        id: 'sp3',
+        code: 'Subplan 3',
+        title: 'Plan de Comunicación, Capacitación y Educación Ambiental',
+        legalRef: 'RCOA Art. 435',
+        items: [
+          {
+            id: 'sp3_1',
+            question: 'Ejecución del cronograma anual de capacitaciones ambientales al personal (manejo de desechos, respuesta a derrames, uso eficiente de recursos) con registros de asistencia y evaluaciones.',
+            defaultAction: 'Ejecutar el programa de inducción y capacitación ambiental anual respaldado con listas de asistencia firmadas, registro fotográfico y evaluaciones.'
+          },
+          {
+            id: 'sp3_2',
+            question: 'Señalética ambiental, informativa y de seguridad industrial instalada y visible en todas las áreas operativas.',
+            defaultAction: 'Actualizar e instalar señalización normativa (NTE INEN ISO 3864) en puntos de acopio de residuos, bodegas químicas y rutas de evacuación.'
+          }
+        ]
+      },
+      {
+        id: 'sp4',
+        code: 'Subplan 4',
+        title: 'Plan de Relaciones Comunitarias',
+        legalRef: 'COA Art. 184 / RCOA Art. 463',
+        items: [
+          {
+            id: 'sp4_1',
+            question: 'Mecanismo activo de recepción y atención de quejas, reclamos o sugerencias de la comunidad / área de influencia directa.',
+            defaultAction: 'Habilitar buzón físico/digital de atención comunitaria y libro de registro de quejas con protocolos de respuesta documentada.'
+          },
+          {
+            id: 'sp4_2',
+            question: 'Socialización de actividades o informes ambientales con actores locales según lo establecido en el PMA aprobado.',
+            defaultAction: 'Realizar jornadas de socialización con vecinos/comunidad del área de influencia directa y archivar actas de reunión.'
+          }
+        ]
+      },
+      {
+        id: 'sp5',
+        code: 'Subplan 5',
+        title: 'Plan de Contingencias y Emergencias',
+        legalRef: 'RCOA Art. 435 / Reglamento Prevención Incendios',
+        items: [
+          {
+            id: 'sp5_1',
+            question: 'Kits antiderrames completos y operativos en áreas críticas, extintores con carga vigente y sistema contra incendios aprobado por el Cuerpo de Bomberos.',
+            defaultAction: 'Dotar kits antiderrames (paños absorbentes, salchichas, EPP, fundas rojas) en zonas de riesgo y renovar recarga de extintores / permiso de Bomberos.'
+          },
+          {
+            id: 'sp5_2',
+            question: 'Conformación de brigadas de emergencia y ejecución de al menos un simulacro anual documentado (derrames, incendios o evacuación).',
+            defaultAction: 'Conformar brigadas de emergencia y ejecutar un simulacro de contingencia ambiental con informe de evaluación y mejoras.'
+          }
+        ]
+      },
+      {
+        id: 'sp6',
+        code: 'Subplan 6',
+        title: 'Plan de Seguridad y Salud Ocupacional',
+        legalRef: 'Decreto Ejecutivo 2393 / Acuerdo Ministerial 196',
+        items: [
+          {
+            id: 'sp6_1',
+            question: 'Dotación y uso obligatorio de Equipos de Protección Personal (EPP) acordes al riesgo químico, físico y biológico de cada puesto.',
+            defaultAction: 'Entregar EPP certificado con matrices de riesgo por puesto de trabajo y mantener actas individuales de entrega firmadas.'
+          },
+          {
+            id: 'sp6_2',
+            question: 'Reglamento de Higiene y Seguridad aprobado (SUT) y vigilancia de la salud ocupacional del personal.',
+            defaultAction: 'Registrar/actualizar el Plan de Prevención de Riesgos Laborales o Reglamento de Higiene y Seguridad en el Sistema Único de Trabajo (SUT).'
+          }
+        ]
+      },
+      {
+        id: 'sp7',
+        code: 'Subplan 7',
+        title: 'Plan de Monitoreo y Seguimiento Ambiental',
+        legalRef: 'RCOA Art. 480-496 / TULSMA Libro VI',
+        items: [
+          {
+            id: 'sp7_1',
+            question: 'Ejecución oportuna de monitoreos ambientales (agua, aire, ruido, suelo) mediante laboratorios acreditados ante el Servicio de Acreditación Ecuatoriano (SAE).',
+            defaultAction: 'Contratar monitoreos ambientales inmediatos con laboratorio acreditado SAE conforme a la frecuencia establecida en la Resolución Ambiental.'
+          },
+          {
+            id: 'sp7_2',
+            question: 'Presentación oportuna de Informes Ambientales de Cumplimiento (IAC) o Auditorías Ambientales de Cumplimiento (AAC) ante la Autoridad Ambiental Competente.',
+            defaultAction: 'Elaborar y presentar el Informe Ambiental de Cumplimiento (IAC) o Términos de Referencia / Auditoría Ambiental (AAC) vencida ante el MAATE/GAD.'
+          }
+        ]
+      },
+      {
+        id: 'sp8',
+        code: 'Subplan 8',
+        title: 'Plan de Rehabilitación de Áreas Afectadas / Cierre y Abandono',
+        legalRef: 'COA Art. 204 / RCOA Art. 500',
+        items: [
+          {
+            id: 'sp8_1',
+            question: 'Mantenimiento de áreas verdes/perimetrales libres de pasivos ambientales, suelos contaminados o acumulación de chatarra/escombros.',
+            defaultAction: 'Ejecutar limpieza y remediación puntual de suelos afectados o zonas de acopio informal de chatarra y pasivos operativos.'
+          },
+          {
+            id: 'sp8_2',
+            question: 'Directrices documentadas para desmantelamiento, retiro de equipos y disposición final en caso de cierre parcial o total de instalaciones.',
+            defaultAction: 'Documentar protocolo actualizado de cierre, abandono y entrega de área libre de pasivos ambientales.'
+          }
+        ]
+      }
+    ];
+
+    // 2. PARÁMETROS NORMATIVOS TULSMA LIBRO VI (ANEXOS 1, 4 Y 5)
+    const MONITORING_SPECS = {
+      agua: [
+        { id: 'ph', name: 'Potencial de Hidrógeno (pH)', unit: 'Unidades pH', type: 'range', min: 6.0, max: 9.0, lmpLabel: '6.0 - 9.0' },
+        { id: 'dbo5', name: 'Demanda Bioquímica de Oxígeno (DBO5)', unit: 'mg/L', type: 'max', lmpByReceptor: { dulce: 100, alcantarillado: 250 } },
+        { id: 'dqo', name: 'Demanda Química de Oxígeno (DQO)', unit: 'mg/L', type: 'max', lmpByReceptor: { dulce: 200, alcantarillado: 500 } },
+        { id: 'sst', name: 'Sólidos Suspendidos Totales (SST)', unit: 'mg/L', type: 'max', lmpByReceptor: { dulce: 130, alcantarillado: 220 } },
+        { id: 'ayg', name: 'Aceites y Grasas', unit: 'mg/L', type: 'max', lmpByReceptor: { dulce: 30, alcantarillado: 70 } }
+      ],
+      aire: [
+        { id: 'pm10', name: 'Material Particulado PM10 (24h)', unit: 'µg/m³', type: 'max', max: 100 },
+        { id: 'pm25', name: 'Material Particulado Fino PM2.5 (24h)', unit: 'µg/m³', type: 'max', max: 50 },
+        { id: 'so2', name: 'Dióxido de Azufre (SO2 - 24h)', unit: 'µg/m³', type: 'max', max: 125 },
+        { id: 'no2', name: 'Dióxido de Nitrógeno (NO2 - 1h)', unit: 'µg/m³', type: 'max', max: 200 },
+        { id: 'co', name: 'Monóxido de Carbono (CO - 8h)', unit: 'mg/m³', type: 'max', max: 10 }
+      ],
+      ruido: [
+        { id: 'diurno', name: 'Nivel de Ruido Diurno (07:01 - 21:00)', unit: 'dBA (LKeq)', type: 'max', lmpByZone: { hospitalario: 55, residencial: 55, mixto: 60, comercial: 65, industrial: 70 } },
+        { id: 'nocturno', name: 'Nivel de Ruido Nocturno (21:01 - 07:00)', unit: 'dBA (LKeq)', type: 'max', lmpByZone: { hospitalario: 45, residencial: 45, mixto: 50, comercial: 55, industrial: 65 } }
+      ]
+    };
+
+    // Estado Global de la Aplicación
+    let appState = {
+      pma: {},
+      monitoring: {
+        agua: { ph: '', dbo5: '', dqo: '', sst: '', ayg: '' },
+        aire: { pm10: '', pm25: '', so2: '', no2: '', co: '' },
+        ruido: { diurno: '', nocturno: '' }
+      },
+      consultant: { ...CONSULTANT_PROFILE }
+    };
+
+    let chartSubplansInstance = null;
+    let chartFindingsInstance = null;
+
+    // =========================================================================
+    // INICIALIZACIÓN
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('proj-date').value = today;
+
+      // Permite opcionalmente pre-llenar el nombre de una empresa vía ?empresa=Nombre
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('empresa')) {
+        document.getElementById('proj-name').value = decodeURIComponent(params.get('empresa'));
+      }
+
+      applyConsultantToUI();
+
+      // Inicializar estado PMA vacío
+      PMA_SUBPLANS.forEach(sp => {
+        sp.items.forEach(item => {
+          appState.pma[item.id] = { status: '', obs: '' };
+        });
+      });
+
+      renderPMASubplans();
+      renderMonitoringTables();
+      evaluateAll();
+    });
+
+    function applyConsultantToUI() {
+      const c = appState.consultant;
+      document.getElementById('header-brand-subtitle').textContent =
+        `Portal de Autodiagnóstico Ambiental • Respaldado por ${c.name}`;
+      document.getElementById('rep-consultant-name').textContent = c.name;
+      document.getElementById('rep-consultant-reg').textContent = `Registro Consultor MAATE: ${c.reg}`;
+      document.getElementById('rep-sign-name').textContent = c.name;
+      document.getElementById('rep-sign-reg').textContent = `Reg. ${c.reg}`;
+      document.getElementById('rep-consultant-contact').textContent =
+        `Contacto Consultoría: ${c.name} | Tel: ${c.phone} | Email: ${c.email}`;
+      document.getElementById('page-footer').textContent =
+        `${c.name} • Portal de Autodiagnóstico Ambiental Empresarial (COA • RCOA • TULSMA Libro VI)`;
+    }
+
+    // =========================================================================
+    // NAVEGACIÓN ENTRE PESTAÑAS Y MATRICES
+    // =========================================================================
+    function switchTab(stepNumber) {
+      for (let i = 1; i <= 4; i++) {
+        const panel = document.getElementById(`panel-${i}`);
+        const btn = document.getElementById(`tab-btn-${i}`);
+        if (i === stepNumber) {
+          panel.classList.remove('hidden');
+          btn.classList.remove('text-slate-600', 'hover:bg-slate-50');
+          btn.classList.add('bg-brand-900', 'text-white');
+          const badge = btn.querySelector('span');
+          badge.classList.remove('bg-slate-100', 'text-slate-700', 'bg-emerald-100', 'text-emerald-800');
+          badge.classList.add('bg-white/15', 'text-white');
+        } else {
+          panel.classList.add('hidden');
+          btn.classList.add('text-slate-600', 'hover:bg-slate-50');
+          btn.classList.remove('bg-brand-900', 'text-white');
+          const badge = btn.querySelector('span');
+          badge.classList.remove('bg-white/15', 'text-white');
+          if (i === 4) {
+            badge.classList.add('bg-emerald-100', 'text-emerald-800');
+          } else {
+            badge.classList.add('bg-slate-100', 'text-slate-700');
+          }
+        }
+      }
+
+      if (stepNumber === 4) {
+        evaluateAll();
+        renderReport();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function switchMatrix(matrixName) {
+      ['agua', 'aire', 'ruido'].forEach(m => {
+        const div = document.getElementById(`matrix-${m}`);
+        const btn = document.getElementById(`mat-btn-${m}`);
+        if (m === matrixName) {
+          div.classList.remove('hidden');
+          btn.classList.remove('bg-slate-100', 'text-slate-700', 'hover:bg-slate-200');
+          btn.classList.add('bg-brand-900', 'text-white');
+        } else {
+          div.classList.add('hidden');
+          btn.classList.add('bg-slate-100', 'text-slate-700', 'hover:bg-slate-200');
+          btn.classList.remove('bg-brand-900', 'text-white');
+        }
+      });
+    }
+
+    // =========================================================================
+    // RENDERIZADO DEL CHECKLIST PMA (8 SUBPLANES)
+    // =========================================================================
+    function renderPMASubplans() {
+      const container = document.getElementById('pma-subplans-container');
+      container.innerHTML = '';
+
+      PMA_SUBPLANS.forEach((sp, idx) => {
+        const spDiv = document.createElement('div');
+        spDiv.className = 'p-6 space-y-4';
+
+        let itemsHtml = '';
+        sp.items.forEach((item, iIdx) => {
+          const current = appState.pma[item.id] || { status: '', obs: '' };
+          itemsHtml += `
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition space-y-3">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div class="flex-1">
+                  <span class="text-[11px] font-bold text-brand-700 uppercase">Criterio ${idx + 1}.${iIdx + 1}</span>
+                  <p class="text-xs sm:text-sm font-medium text-slate-800 mt-0.5 leading-snug">${item.question}</p>
+                </div>
+
+                <!-- Botones tipo Semáforo (3 opciones: C, NC, N/A) -->
+                <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                  ${renderStatusButton(item.id, 'C', 'Cumple (C)', current.status)}
+                  ${renderStatusButton(item.id, 'NC', 'No Cumple (NC)', current.status)}
+                  ${renderStatusButton(item.id, 'NA', 'No Aplica (N/A)', current.status)}
+                </div>
+              </div>
+
+              <div>
+                <input type="text"
+                  value="${escapeHtml(current.obs)}"
+                  oninput="updatePMAObs('${item.id}', this.value)"
+                  placeholder="Observación o evidencia opcional (Ej. Manifiesto Único N° 0045, Bodega en adecuación...)"
+                  class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600" />
+              </div>
+            </div>
+          `;
+        });
+
+        spDiv.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div>
+              <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-100 text-brand-800 uppercase tracking-wide">${sp.code}</span>
+              <h3 class="font-display font-bold text-sm sm:text-base text-brand-900 mt-1">${sp.title}</h3>
+            </div>
+            <span class="text-[11px] font-medium text-slate-400"><i class="fa-solid fa-book-bookmark mr-1"></i>${sp.legalRef}</span>
+          </div>
+          <div class="space-y-3">
+            ${itemsHtml}
+          </div>
+        `;
+        container.appendChild(spDiv);
+      });
+    }
+
+    function renderStatusButton(itemId, statusValue, label, currentStatus) {
+      const isSelected = currentStatus === statusValue;
+      let classes = 'px-3.5 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ';
+
+      if (statusValue === 'C') {
+        classes += isSelected
+          ? 'bg-semaforo-verde text-white border-semaforo-verde shadow-xs'
+          : 'bg-white text-slate-600 border-slate-300 hover:bg-semaforo-verdeBg hover:text-semaforo-verdeText';
+      } else if (statusValue === 'NC') {
+        classes += isSelected
+          ? 'bg-semaforo-rojo text-white border-semaforo-rojo shadow-xs'
+          : 'bg-white text-slate-600 border-slate-300 hover:bg-semaforo-rojoBg hover:text-semaforo-rojoText';
+      } else {
+        classes += isSelected
+          ? 'bg-slate-700 text-white border-slate-700 shadow-xs'
+          : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-100';
+      }
+
+      return `<button type="button" onclick="setPMAStatus('${itemId}', '${statusValue}')" class="${classes}">${label}</button>`;
+    }
+
+    function setPMAStatus(itemId, status) {
+      appState.pma[itemId].status = status;
+      renderPMASubplans();
+      evaluateAll();
+    }
+
+    function updatePMAObs(itemId, obs) {
+      appState.pma[itemId].obs = obs;
+    }
+
+    function markAllPMA(status) {
+      Object.keys(appState.pma).forEach(k => {
+        appState.pma[k].status = status;
+      });
+      renderPMASubplans();
+      evaluateAll();
+      showToast('Todos los criterios del PMA marcados como "Cumple".', 'success');
+    }
+
+    // =========================================================================
+    // RENDERIZADO Y EVALUACIÓN DE MONITOREOS AMBIENTALES (AGUA, AIRE, RUIDO)
+    // =========================================================================
+    function parseDecimalInput(rawVal) {
+      if (rawVal === null || rawVal === undefined) return NaN;
+      const str = String(rawVal).trim();
+      if (str === '') return NaN;
+      const normalized = str.replace(/\s+/g, '').replace(',', '.');
+      if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(normalized)) {
+        return NaN;
+      }
+      return parseFloat(normalized);
+    }
+
+    function onNormConfigChange() {
+      renderMonitoringTables();
+      evaluateAll();
+    }
+
+    function renderMonitoringTables() {
+      // Agua
+      const receptor = document.getElementById('agua-receptor').value;
+      const tbodyAgua = document.getElementById('tbody-agua');
+      tbodyAgua.innerHTML = MONITORING_SPECS.agua.map(p => {
+        const lmpText = p.type === 'range' ? p.lmpLabel : `≤ ${p.lmpByReceptor[receptor]}`;
+        const val = appState.monitoring.agua[p.id];
+        return `
+          <tr class="hover:bg-slate-50/70">
+            <td class="py-3 px-4 font-semibold text-slate-800">${p.name}</td>
+            <td class="py-3 px-4 text-slate-500">${p.unit}</td>
+            <td class="py-3 px-4 font-mono font-semibold text-brand-800">${lmpText}</td>
+            <td class="py-3 px-4">
+              <input type="text" inputmode="decimal" autocomplete="off"
+                id="input-agua-${p.id}"
+                value="${escapeHtml(val)}"
+                oninput="updateMonValue('agua', '${p.id}', this)"
+                placeholder="Ej. 12,5 o 12.5"
+                class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-700" />
+            </td>
+            <td class="py-3 px-4" id="status-agua-${p.id}">
+              ${getParamBadgeHtml('agua', p, val)}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Aire
+      const tbodyAire = document.getElementById('tbody-aire');
+      tbodyAire.innerHTML = MONITORING_SPECS.aire.map(p => {
+        const val = appState.monitoring.aire[p.id];
+        return `
+          <tr class="hover:bg-slate-50/70">
+            <td class="py-3 px-4 font-semibold text-slate-800">${p.name}</td>
+            <td class="py-3 px-4 text-slate-500">${p.unit}</td>
+            <td class="py-3 px-4 font-mono font-semibold text-brand-800">≤ ${p.max}</td>
+            <td class="py-3 px-4">
+              <input type="text" inputmode="decimal" autocomplete="off"
+                id="input-aire-${p.id}"
+                value="${escapeHtml(val)}"
+                oninput="updateMonValue('aire', '${p.id}', this)"
+                placeholder="Ej. 45,8 o 45.8"
+                class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-700" />
+            </td>
+            <td class="py-3 px-4" id="status-aire-${p.id}">
+              ${getParamBadgeHtml('aire', p, val)}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Ruido
+      const zona = document.getElementById('ruido-zona').value;
+      const tbodyRuido = document.getElementById('tbody-ruido');
+      tbodyRuido.innerHTML = MONITORING_SPECS.ruido.map(p => {
+        const limit = p.lmpByZone[zona];
+        const val = appState.monitoring.ruido[p.id];
+        return `
+          <tr class="hover:bg-slate-50/70">
+            <td class="py-3 px-4 font-semibold text-slate-800">${p.name}</td>
+            <td class="py-3 px-4 text-slate-500">${p.unit}</td>
+            <td class="py-3 px-4 font-mono font-semibold text-brand-800">≤ ${limit} dB</td>
+            <td class="py-3 px-4">
+              <input type="text" inputmode="decimal" autocomplete="off"
+                id="input-ruido-${p.id}"
+                value="${escapeHtml(val)}"
+                oninput="updateMonValue('ruido', '${p.id}', this)"
+                placeholder="Ej. 62,5 o 62.5"
+                class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-700" />
+            </td>
+            <td class="py-3 px-4" id="status-ruido-${p.id}">
+              ${getParamBadgeHtml('ruido', p, val)}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updateMonValue(matrix, paramId, inputEl) {
+      let raw = inputEl.value;
+      let cleaned = '';
+      let hasDecimalSep = false;
+
+      for (let i = 0; i < raw.length; i++) {
+        const ch = raw[i];
+        if (ch >= '0' && ch <= '9') {
+          cleaned += ch;
+        } else if ((ch === '.' || ch === ',') && !hasDecimalSep) {
+          cleaned += ch;
+          hasDecimalSep = true;
+        }
+      }
+
+      if (cleaned !== raw) {
+        const cursorPos = inputEl.selectionStart;
+        inputEl.value = cleaned;
+        if (cursorPos !== null) {
+          const newPos = Math.max(0, cursorPos - (raw.length - cleaned.length));
+          inputEl.setSelectionRange(newPos, newPos);
+        }
+      }
+
+      appState.monitoring[matrix][paramId] = cleaned;
+
+      if (cleaned.trim() !== '') {
+        document.getElementById(`active-${matrix}`).checked = true;
+      }
+
+      const spec = MONITORING_SPECS[matrix].find(item => item.id === paramId);
+      const statusCell = document.getElementById(`status-${matrix}-${paramId}`);
+      if (spec && statusCell) {
+        statusCell.innerHTML = getParamBadgeHtml(matrix, spec, cleaned);
+      }
+
+      evaluateAll();
+    }
+
+    function evaluateSingleParam(matrix, param, rawVal) {
+      const val = parseDecimalInput(rawVal);
+      if (isNaN(val)) {
+        return { state: 'empty', label: 'Sin medición', limitStr: '', numericVal: null };
+      }
+
+      if (param.type === 'range') {
+        if (val < param.min || val > param.max) {
+          return { state: 'exceed', label: `Fuera de Rango (${param.min}-${param.max})`, limitStr: `${param.min} - ${param.max}`, numericVal: val };
+        }
+        if (val <= param.min + 0.3 || val >= param.max - 0.3) {
+          return { state: 'warning', label: 'Alerta Preventiva (Cerca del límite)', limitStr: `${param.min} - ${param.max}`, numericVal: val };
+        }
+        return { state: 'ok', label: 'Cumple LMP', limitStr: `${param.min} - ${param.max}`, numericVal: val };
+      }
+
+      let limit = param.max;
+      if (matrix === 'agua' && param.lmpByReceptor) {
+        const rec = document.getElementById('agua-receptor').value;
+        limit = param.lmpByReceptor[rec];
+      } else if (matrix === 'ruido' && param.lmpByZone) {
+        const zona = document.getElementById('ruido-zona').value;
+        limit = param.lmpByZone[zona];
+      }
+
+      if (val > limit) {
+        const pctOver = (((val - limit) / limit) * 100).toFixed(0);
+        return { state: 'exceed', label: `Excede LMP (+${pctOver}%)`, limitStr: `≤ ${limit}`, numericVal: val };
+      }
+      if (val >= limit * 0.85) {
+        return { state: 'warning', label: 'Alerta Preventiva (>85% LMP)', limitStr: `≤ ${limit}`, numericVal: val };
+      }
+      return { state: 'ok', label: 'Cumple LMP', limitStr: `≤ ${limit}`, numericVal: val };
+    }
+
+    function getParamBadgeHtml(matrix, param, val) {
+      const res = evaluateSingleParam(matrix, param, val);
+      if (res.state === 'empty') {
+        return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500">Pendiente</span>`;
+      }
+      if (res.state === 'ok') {
+        return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-semaforo-verdeBg text-semaforo-verdeText border border-semaforo-verdeBorder"><i class="fa-solid fa-circle text-[8px] text-semaforo-verde"></i> ${res.label}</span>`;
+      }
+      if (res.state === 'warning') {
+        return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-semaforo-amarilloBg text-semaforo-amarilloText border border-semaforo-amarilloBorder"><i class="fa-solid fa-circle text-[8px] text-semaforo-amarillo"></i> ${res.label}</span>`;
+      }
+      return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-semaforo-rojoBg text-semaforo-rojoText border border-semaforo-rojoBorder"><i class="fa-solid fa-circle text-[8px] text-semaforo-rojo"></i> ${res.label}</span>`;
+    }
+
+    // =========================================================================
+    // LECTOR / PARSER DE ARCHIVOS DE MONITOREO CON FALLBACK MANUAL INTELIGENTE
+    // =========================================================================
+    function handleFileUpload(matrix, input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const feedbackBox = document.getElementById(`upload-feedback-${matrix}`);
+      feedbackBox.classList.remove('hidden');
+      feedbackBox.innerHTML = `
+        <div class="p-3 rounded-xl bg-brand-50 border border-brand-200 text-xs text-brand-800 flex items-center gap-2">
+          <i class="fa-solid fa-spinner fa-spin"></i> Analizando documento <strong>${escapeHtml(file.name)}</strong>...
+        </div>
+      `;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (ext === 'csv' || ext === 'txt') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const text = e.target.result || '';
+          const extractedCount = parseTextMonitoringData(matrix, text);
+
+          if (extractedCount > 0) {
+            document.getElementById(`active-${matrix}`).checked = true;
+            renderMonitoringTables();
+            evaluateAll();
+            feedbackBox.innerHTML = `
+              <div class="p-3 rounded-xl bg-semaforo-verdeBg border border-semaforo-verdeBorder text-xs text-semaforo-verdeText">
+                <p class="font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Lectura Exitosa (${extractedCount} parámetros extraídos)</p>
+                <p class="mt-0.5 text-[11px]">Verifique los valores cargados en la tabla derecha.</p>
+              </div>
+            `;
+            showToast(`Se extrajeron ${extractedCount} parámetros desde ${file.name}`, 'success');
+          } else {
+            showManualFallbackNotice(feedbackBox, file.name, 'El archivo de texto no contiene etiquetas estándar reconocibles (ej. pH, DBO5, PM10, LKeq).');
+          }
+        };
+        reader.onerror = function() {
+          showManualFallbackNotice(feedbackBox, file.name, 'No se pudo leer el archivo seleccionado.');
+        };
+        reader.readAsText(file);
+      } else {
+        setTimeout(() => {
+          showManualFallbackNotice(
+            feedbackBox,
+            file.name,
+            'El documento PDF/Excel es un archivo escaneado o con formato protegido sin texto estructurado legible.'
+          );
+        }, 550);
+      }
+    }
+
+    function showManualFallbackNotice(container, fileName, reason) {
+      container.innerHTML = `
+        <div class="p-3.5 rounded-xl bg-semaforo-amarilloBg border border-semaforo-amarilloBorder text-xs text-semaforo-amarilloText space-y-1">
+          <p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Carga Manual Habilitada (${escapeHtml(fileName)})</p>
+          <p class="text-[11px] leading-snug">${reason} <strong>Por favor, digite los resultados directamente en la tabla de parámetros de la derecha.</strong></p>
+        </div>
+      `;
+      showToast('Archivo adjuntado. Ingrese los valores manualmente en la tabla.', 'warning');
+    }
+
+    function parseTextMonitoringData(matrix, text) {
+      let count = 0;
+      const lines = text.split(/\r?\n/);
+      const patterns = {
+        agua: {
+          ph: /\bph\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          dbo5: /\bdbo5?\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          dqo: /\bdqo\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          sst: /\bsst\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          ayg: /(?:aceites|grasas|ayg)\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+        },
+        aire: {
+          pm10: /\bpm10\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          pm25: /\bpm2\.?5\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          so2: /\bso2\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          no2: /\bno2\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          co: /\bco\b\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+        },
+        ruido: {
+          diurno: /(?:diurno|dia|lkeq_d)\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+          nocturno: /(?:nocturno|noche|lkeq_n)\s*[:=;\t]\s*([0-9]+(?:[.,][0-9]+)?)/i,
+        }
+      };
+
+      const matrixPatterns = patterns[matrix];
+      for (const line of lines) {
+        for (const [key, regex] of Object.entries(matrixPatterns)) {
+          const match = line.match(regex);
+          if (match && match[1]) {
+            appState.monitoring[matrix][key] = match[1].replace(',', '.');
+            count++;
+          }
+        }
+      }
+      return count;
+    }
+
+    // =========================================================================
+    // MOTOR DE CÁLCULO DE CUMPLIMIENTO Y DIAGNÓSTICO NORMATIVO (COA/TULSMA)
+    // =========================================================================
+    function computeDiagnostics() {
+      let cCount = 0;
+      let ncCount = 0;
+      let naCount = 0;
+      let evaluatedCount = 0;
+
+      const subplanScores = [];
+      const findingsList = [];
+
+      PMA_SUBPLANS.forEach(sp => {
+        let spApplicable = 0;
+        let spPoints = 0;
+
+        sp.items.forEach(item => {
+          const entry = appState.pma[item.id] || { status: '', obs: '' };
+          if (entry.status) evaluatedCount++;
+
+          if (entry.status === 'C') {
+            cCount++;
+            spApplicable++;
+            spPoints += 1;
+          } else if (entry.status === 'NC') {
+            ncCount++;
+            spApplicable++;
+            spPoints += 0;
+            findingsList.push({
+              severity: 'NC',
+              source: sp.title,
+              legal: sp.legalRef,
+              description: item.question,
+              obs: entry.obs || 'Incumplimiento detectado en autoevaluación del Plan de Manejo Ambiental.',
+              action: item.defaultAction,
+              deadline: 'Inmediato / Corto Plazo (0 - 30 días)'
+            });
+          } else if (entry.status === 'NA') {
+            naCount++;
+          }
+        });
+
+        const pct = spApplicable > 0 ? Math.round((spPoints / spApplicable) * 100) : null;
+        subplanScores.push({
+          code: sp.code,
+          title: sp.title,
+          pct: pct
+        });
+      });
+
+      const totalApplicable = cCount + ncCount;
+      const pmaCompliancePct = totalApplicable > 0
+        ? Math.round((cCount / totalApplicable) * 100)
+        : 0;
+
+      // Evaluar monitoreos activos
+      let lmpExceedCount = 0;
+      let lmpWarningCount = 0;
+      let lmpOkCount = 0;
+      const monitoringSummary = [];
+
+      ['agua', 'aire', 'ruido'].forEach(matrix => {
+        const isActive = document.getElementById(`active-${matrix}`).checked;
+        const specs = MONITORING_SPECS[matrix];
+        let matExceed = 0;
+        let matWarn = 0;
+        let matOk = 0;
+        const paramDetails = [];
+
+        specs.forEach(p => {
+          const rawVal = appState.monitoring[matrix][p.id];
+          const res = evaluateSingleParam(matrix, p, rawVal);
+          if (res.state !== 'empty') {
+            const cleanDisplayVal = String(rawVal).trim().replace(',', '.');
+            paramDetails.push({
+              name: p.name,
+              val: cleanDisplayVal,
+              unit: p.unit,
+              limit: res.limitStr,
+              state: res.state,
+              label: res.label
+            });
+            if (isActive) {
+              if (res.state === 'exceed') {
+                lmpExceedCount++;
+                matExceed++;
+                findingsList.unshift({
+                  severity: 'LMP',
+                  source: `Monitoreo ${matrix.toUpperCase()} (TULSMA Libro VI)`,
+                  legal: matrix === 'agua' ? 'TULSMA Anexo 1' : matrix === 'aire' ? 'TULSMA Anexo 4' : 'TULSMA Anexo 5',
+                  description: `Superación de Límite Máximo Permisible en ${p.name}: Medido ${cleanDisplayVal} ${p.unit} (Norma: ${res.limitStr} ${p.unit}).`,
+                  obs: res.label,
+                  action: `Implementar medidas correctivas de ingeniería/operación en fuente generadora de ${matrix} y ejecutar monitoreo de comprobación con laboratorio acreditado SAE.`,
+                  deadline: 'Inmediato (0 - 15 días)'
+                });
+              } else if (res.state === 'warning') {
+                lmpWarningCount++;
+                matWarn++;
+              } else if (res.state === 'ok') {
+                lmpOkCount++;
+                matOk++;
+              }
+            }
+          }
+        });
+
+        monitoringSummary.push({
+          matrix,
+          isActive,
+          exceed: matExceed,
+          warn: matWarn,
+          ok: matOk,
+          params: paramDetails
+        });
+      });
+
+      const permitType = document.getElementById('proj-permit').value;
+      const isIrregularPermit = permitType.includes('Sin Regularización');
+
+      let overallLevel = 'VERDE';
+      if (ncCount >= 2 || lmpExceedCount > 0 || isIrregularPermit || (totalApplicable > 0 && pmaCompliancePct < 75)) {
+        overallLevel = 'ROJO';
+      } else if (ncCount === 1 || lmpWarningCount > 0 || (totalApplicable > 0 && pmaCompliancePct < 100)) {
+        overallLevel = 'AMARILLO';
+      } else if (totalApplicable === 0 && (lmpOkCount + lmpWarningCount + lmpExceedCount) === 0) {
+        overallLevel = 'PENDIENTE';
+      }
+
+      return {
+        cCount,
+        ncCount,
+        naCount,
+        evaluatedCount,
+        totalItems: Object.keys(appState.pma).length,
+        totalApplicable,
+        pmaCompliancePct,
+        subplanScores,
+        lmpExceedCount,
+        lmpWarningCount,
+        lmpOkCount,
+        monitoringSummary,
+        findingsList,
+        overallLevel,
+        isIrregularPermit
+      };
+    }
+
+    function evaluateAll() {
+      const diag = computeDiagnostics();
+
+      document.getElementById('top-pma-score').textContent = `${diag.pmaCompliancePct}%`;
+      document.getElementById('top-nc-count').textContent = diag.ncCount;
+      document.getElementById('top-lmp-exceed').textContent = diag.lmpExceedCount;
+
+      const evalCounter = document.getElementById('pma-evaluated-count');
+      if (evalCounter) {
+        evalCounter.textContent = diag.evaluatedCount;
+        document.getElementById('pma-total-count').textContent = diag.totalItems;
+      }
+
+      diag.monitoringSummary.forEach(m => {
+        const badge = document.getElementById(`badge-mat-${m.matrix}`);
+        if (!badge) return;
+        if (!m.isActive || m.params.length === 0) {
+          badge.textContent = 'Sin datos';
+          badge.className = 'ml-1 px-1.5 py-0.5 rounded-md text-[10px] bg-black/10';
+        } else if (m.exceed > 0) {
+          badge.textContent = `${m.exceed} Excede LMP`;
+          badge.className = 'ml-1 px-1.5 py-0.5 rounded-md text-[10px] bg-semaforo-rojo text-white font-bold';
+        } else if (m.warn > 0) {
+          badge.textContent = 'Alerta LMP';
+          badge.className = 'ml-1 px-1.5 py-0.5 rounded-md text-[10px] bg-semaforo-amarillo text-white font-bold';
+        } else {
+          badge.textContent = 'Conforme';
+          badge.className = 'ml-1 px-1.5 py-0.5 rounded-md text-[10px] bg-semaforo-verde text-white font-bold';
+        }
+      });
+
+      const pill = document.getElementById('live-status-pill');
+      if (diag.overallLevel === 'ROJO') {
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full font-bold bg-semaforo-rojoBg text-semaforo-rojoText border border-semaforo-rojoBorder';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-semaforo-rojo animate-pulse"></span> RIESGO ALTO / INCUMPLIMIENTO CRÍTICO`;
+      } else if (diag.overallLevel === 'AMARILLO') {
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full font-bold bg-semaforo-amarilloBg text-semaforo-amarilloText border border-semaforo-amarilloBorder';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-semaforo-amarillo"></span> RIESGO MODERADO / REQUIERE SUBSANACIÓN`;
+      } else if (diag.overallLevel === 'VERDE') {
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full font-bold bg-semaforo-verdeBg text-semaforo-verdeText border border-semaforo-verdeBorder';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-semaforo-verde"></span> CUMPLIMIENTO CONFORME (BAJO RIESGO)`;
+      } else {
+        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-semibold bg-slate-200 text-slate-700';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> Pendiente de evaluación`;
+      }
+    }
+
+    function updateLiveState() {
+      evaluateAll();
+    }
+
+    // =========================================================================
+    // RENDERIZADO DEL REPORTE EJECUTIVO FINAL
+    // =========================================================================
+    function renderReport() {
+      const diag = computeDiagnostics();
+
+      const projName = document.getElementById('proj-name').value.trim() || 'Establecimiento / Proyecto Evaluado';
+      const ruc = document.getElementById('proj-ruc').value.trim() || 'No especificado';
+      const sector = document.getElementById('proj-sector').value;
+      const permit = document.getElementById('proj-permit').value;
+      const capacity = document.getElementById('proj-capacity').value;
+      const location = document.getElementById('proj-location').value.trim() || 'Ecuador';
+      const suia = document.getElementById('proj-suia').value.trim() || 'N/A';
+      const dateVal = document.getElementById('proj-date').value || new Date().toISOString().split('T')[0];
+      const contactPerson = document.getElementById('proj-contact-person').value.trim();
+      const contactInfo = document.getElementById('proj-contact-info').value.trim();
+
+      document.getElementById('rep-proj-name').textContent = projName;
+      document.getElementById('rep-ruc').textContent = ruc;
+      document.getElementById('rep-sector').textContent = sector;
+      document.getElementById('rep-permit').textContent = permit;
+      document.getElementById('rep-location').textContent = location;
+      document.getElementById('rep-suia').textContent = suia;
+      document.getElementById('rep-date').textContent = dateVal;
+      document.getElementById('rep-coa-category').textContent = `Capacidad Económica: Grupo ${capacity}`;
+
+      const contactRow = document.getElementById('rep-contact-row');
+      if (contactPerson || contactInfo) {
+        contactRow.classList.remove('hidden');
+        document.getElementById('rep-contact-val').textContent = [contactPerson, contactInfo].filter(Boolean).join(' • ');
+      } else {
+        contactRow.classList.add('hidden');
+      }
+
+      // Banner Semáforo Principal
+      const banner = document.getElementById('rep-main-banner');
+      if (diag.overallLevel === 'ROJO') {
+        banner.className = 'rounded-2xl p-6 border-2 border-semaforo-rojo bg-semaforo-rojoBg avoid-break';
+        banner.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-semaforo-rojo text-white flex items-center justify-center text-2xl shrink-0 shadow-xs">
+                <i class="fa-solid fa-octagon-exclamation"></i>
+              </div>
+              <div>
+                <span class="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase bg-semaforo-rojo text-white tracking-wider">Alerta Roja • Riesgo Crítico de Sanción</span>
+                <h2 class="font-display font-bold text-lg sm:text-xl text-semaforo-rojoText mt-1">Incumplimiento Normativo Grave / Muy Grave (COA Art. 317 - 318)</h2>
+                <p class="text-xs text-semaforo-rojoText/90 mt-1 leading-relaxed">
+                  Se han detectado <strong>${diag.ncCount} incumplimiento(s) (NC) en el PMA</strong>${diag.lmpExceedCount > 0 ? ` y <strong>${diag.lmpExceedCount} parámetro(s) fuera de Límites Máximos Permisibles</strong>` : ''}${diag.isIrregularPermit ? ' además de operar sin autorización administrativa ambiental vigente' : ''}. Ante una inspección de control del MAATE o GAD acreditado, el establecimiento enfrenta apertura de Procedimiento Administrativo Sancionador, multas pecuniarias y potencial suspensión temporal de actividades.
+                </p>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (diag.overallLevel === 'AMARILLO') {
+        banner.className = 'rounded-2xl p-6 border-2 border-semaforo-amarillo bg-semaforo-amarilloBg avoid-break';
+        banner.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-semaforo-amarillo text-white flex items-center justify-center text-2xl shrink-0 shadow-xs">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <span class="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase bg-semaforo-amarillo text-white tracking-wider">Alerta Ámbar • Cumplimiento Parcial con Observaciones</span>
+                <h2 class="font-display font-bold text-lg sm:text-xl text-semaforo-amarilloText mt-1">Desviación Puntual (NC) / Alerta Preventiva en Monitoreos</h2>
+                <p class="text-xs text-semaforo-amarilloText/90 mt-1 leading-relaxed">
+                  El establecimiento mantiene un cumplimiento del <strong>${diag.pmaCompliancePct}%</strong> en su PMA, registrando <strong>${diag.ncCount} incumplimiento(s) puntual(es) (NC)</strong>${diag.lmpWarningCount > 0 ? ` y <strong>${diag.lmpWarningCount} parámetro(s) en zona de alerta preventiva (>85% LMP)</strong>` : ''}. Según el Art. 492 del RCOA, todo incumplimiento debe ser subsanado mediante un Plan de Acción documentado para evitar sanciones administrativas.
+                </p>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        banner.className = 'rounded-2xl p-6 border-2 border-semaforo-verde bg-semaforo-verdeBg avoid-break';
+        banner.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-semaforo-verde text-white flex items-center justify-center text-2xl shrink-0 shadow-xs">
+                <i class="fa-solid fa-shield-check"></i>
+              </div>
+              <div>
+                <span class="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase bg-semaforo-verde text-white tracking-wider">Alerta Verde • Cumplimiento Normativo Conforme</span>
+                <h2 class="font-display font-bold text-lg sm:text-xl text-semaforo-verdeText mt-1">Operación Alineada con el PMA y la Normativa Ambiental Ecuatoriana</h2>
+                <p class="text-xs text-semaforo-verdeText/90 mt-1 leading-relaxed">
+                  El establecimiento evidencia un <strong>${diag.pmaCompliancePct}%</strong> de cumplimiento en las obligaciones evaluadas de su Plan de Manejo Ambiental y respeta los Límites Máximos Permisibles analizados. Se recomienda mantener la trazabilidad documental para futuras Auditorías Ambientales de Cumplimiento (AAC) o Informes Ambientales (IAC).
+                </p>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // KPIs
+      document.getElementById('kpi-pma-pct').textContent = `${diag.pmaCompliancePct}%`;
+      document.getElementById('kpi-pma-detail').textContent = `${diag.cCount} de ${diag.totalApplicable} aplicables cumplidos`;
+      const pmaBadge = document.getElementById('kpi-pma-badge');
+      if (diag.pmaCompliancePct >= 90 && diag.ncCount === 0) {
+        pmaBadge.textContent = 'Óptimo';
+        pmaBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold bg-semaforo-verdeBg text-semaforo-verdeText';
+      } else if (diag.pmaCompliancePct >= 75 && diag.ncCount <= 1) {
+        pmaBadge.textContent = 'Preventivo';
+        pmaBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold bg-semaforo-amarilloBg text-semaforo-amarilloText';
+      } else {
+        pmaBadge.textContent = 'Crítico';
+        pmaBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold bg-semaforo-rojoBg text-semaforo-rojoText';
+      }
+
+      document.getElementById('kpi-c-count').textContent = diag.cCount;
+      document.getElementById('kpi-na-detail').textContent = `${diag.naCount} criterio(s) No Aplica (N/A)`;
+      document.getElementById('kpi-nc-count').textContent = diag.ncCount;
+      document.getElementById('kpi-lmp-exceed').textContent = diag.lmpExceedCount;
+      document.getElementById('kpi-lmp-detail').textContent = `${diag.lmpOkCount} dentro de norma, ${diag.lmpWarningCount} alerta`;
+
+      renderLegalExposure(diag, capacity);
+      renderMonitoringReportSection(diag);
+      renderActionPlanSection(diag);
+      renderCharts(diag);
+    }
+
+    function renderLegalExposure(diag, capacity) {
+      const fineTable = {
+        A: { leve: '1 a 2 SBU', grave: '5 a 10 SBU', muyGrave: '10 a 20 SBU' },
+        B: { leve: '2.5 a 5 SBU', grave: '15 a 30 SBU', muyGrave: '35 a 75 SBU' },
+        C: { leve: '5 a 15 SBU', grave: '35 a 75 SBU', muyGrave: '75 a 150 SBU' },
+        D: { leve: '10 a 20 SBU', grave: '75 a 150 SBU', muyGrave: '150 a 200 SBU' }
+      };
+      const fines = fineTable[capacity] || fineTable.C;
+
+      let infractionType = 'Sin infracción administrativa evidenciada';
+      let fineRange = '0 SBU (Sin multa aplicable)';
+      let legalArticles = 'Cumplimiento preventivo Art. 488 RCOA';
+
+      if (diag.ncCount >= 2 || diag.lmpExceedCount > 0 || diag.isIrregularPermit) {
+        if (diag.isIrregularPermit || (diag.ncCount + diag.lmpExceedCount) >= 4) {
+          infractionType = 'Infracción Muy Grave (Art. 318 COA)';
+          fineRange = `${fines.muyGrave} + Suspensión / Clausura temporal`;
+          legalArticles = 'Art. 318 num. 1, 2 y 5 COA (Operación sin permiso o afectación ambiental)';
+        } else {
+          infractionType = 'Infracción Grave (Art. 317 COA)';
+          fineRange = `${fines.grave} + Medidas de reparación integral`;
+          legalArticles = 'Art. 317 num. 2, 4 y 6 COA (Incumplimiento PMA / Exceso LMP)';
+        }
+      } else if (diag.ncCount === 1) {
+        infractionType = 'Infracción Leve / Riesgo Administrativo (Art. 316 COA)';
+        fineRange = `${fines.leve} (si no se subsana en plazo)`;
+        legalArticles = 'Art. 316 num. 1 y 3 COA (Incumplimiento puntual de obligaciones del PMA)';
+      }
+
+      document.getElementById('rep-legal-analysis').innerHTML = `
+        <div class="p-4 rounded-xl bg-white border border-slate-200">
+          <p class="text-[11px] font-bold uppercase text-slate-400">Tipificación Potencial COA</p>
+          <p class="font-bold text-brand-900 mt-1">${infractionType}</p>
+          <p class="text-[11px] text-slate-500 mt-1">${legalArticles}</p>
+        </div>
+        <div class="p-4 rounded-xl bg-white border border-slate-200">
+          <p class="text-[11px] font-bold uppercase text-slate-400">Rango Referencial de Multa (Art. 319 COA)</p>
+          <p class="font-bold text-brand-900 mt-1">${fineRange}</p>
+          <p class="text-[11px] text-slate-500 mt-1">Calculado para Grupo Económico ${capacity} (Art. 319 COA).</p>
+        </div>
+        <div class="p-4 rounded-xl bg-white border border-slate-200">
+          <p class="text-[11px] font-bold uppercase text-slate-400">Medidas Accesorias (Art. 320 COA)</p>
+          <p class="font-bold text-brand-900 mt-1">${diag.overallLevel === 'ROJO' ? 'Suspensión de actividad / Decomiso / Remediación' : 'Requerimiento de Plan de Acción (RCOA Art. 492)'}</p>
+          <p class="text-[11px] text-slate-500 mt-1">La autoridad puede exigir garantía de fiel cumplimiento.</p>
+        </div>
+      `;
+    }
+
+    function renderMonitoringReportSection(diag) {
+      const container = document.getElementById('rep-monitoring-content');
+      const activeMatrices = diag.monitoringSummary.filter(m => m.isActive && m.params.length > 0);
+
+      if (activeMatrices.length === 0) {
+        container.innerHTML = `
+          <div class="md:col-span-3 p-4 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-600 flex items-center gap-3">
+            <i class="fa-solid fa-circle-info text-brand-600 text-base"></i>
+            <span>No se incluyeron resultados de monitoreos físico-químicos o de ruido en esta evaluación. Se recomienda verificar la frecuencia exigida en su Plan de Monitoreo y Seguimiento (Subplan 7).</span>
+          </div>
+        `;
+        return;
+      }
+
+      const titles = {
+        agua: { name: 'Agua / Descargas Líquidas', ref: 'TULSMA Anexo 1', icon: 'fa-droplet text-sky-600' },
+        aire: { name: 'Calidad de Aire Ambiente', ref: 'TULSMA Anexo 4', icon: 'fa-wind text-indigo-600' },
+        ruido: { name: 'Ruido Ambiente (LKeq)', ref: 'TULSMA Anexo 5', icon: 'fa-volume-high text-amber-600' }
+      };
+
+      container.innerHTML = activeMatrices.map(m => {
+        const meta = titles[m.matrix];
+        const rows = m.params.map(p => {
+          const colorClass = p.state === 'exceed'
+            ? 'text-semaforo-rojo font-bold'
+            : p.state === 'warning'
+              ? 'text-semaforo-amarilloText font-semibold'
+              : 'text-semaforo-verdeText font-semibold';
+          return `
+            <div class="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0 text-[11px]">
+              <span class="text-slate-700 truncate pr-2" title="${p.name}">${p.name}</span>
+              <span class="${colorClass} shrink-0">${p.val} (${p.limit})</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid ${meta.icon}"></i>
+                <span class="font-bold text-xs text-brand-900">${meta.name}</span>
+              </div>
+              <span class="text-[10px] font-semibold text-slate-400">${meta.ref}</span>
+            </div>
+            <div>${rows}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderActionPlanSection(diag) {
+      const container = document.getElementById('rep-action-plan');
+
+      if (diag.findingsList.length === 0) {
+        container.innerHTML = `
+          <div class="p-5 rounded-xl border border-semaforo-verdeBorder bg-semaforo-verdeBg/60 text-xs text-semaforo-verdeText flex items-start gap-3">
+            <i class="fa-solid fa-circle-check text-semaforo-verde text-lg mt-0.5"></i>
+            <div>
+              <p class="font-bold text-sm">No se registran Incumplimientos (NC) ni excesos de Límites Máximos Permisibles</p>
+              <p class="mt-1">Se sugiere programar una revisión preventiva trimestral de registros internos (manifiestos de desechos, bitácoras de mantenimiento y calibración de equipos) para sostener el nivel de cumplimiento.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = diag.findingsList.map((f, idx) => {
+        const badgeClass = 'bg-semaforo-rojo text-white';
+        const cardBorder = 'border-semaforo-rojoBorder bg-semaforo-rojoBg/20';
+
+        return `
+          <div class="p-4 rounded-xl border ${cardBorder} space-y-2 avoid-break">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${badgeClass}">
+                  ${f.severity === 'LMP' ? 'EXCESO LMP (NC)' : 'NO CUMPLE (NC)'}
+                </span>
+                <span class="text-xs font-bold text-brand-900">${idx + 1}. ${f.source}</span>
+              </div>
+              <span class="text-[11px] font-semibold text-slate-600 bg-white px-2.5 py-0.5 rounded-md border border-slate-200">
+                <i class="fa-regular fa-clock mr-1"></i> Plazo: ${f.deadline}
+              </span>
+            </div>
+            <p class="text-xs text-slate-800"><strong>Hallazgo:</strong> ${escapeHtml(f.description)}</p>
+            <p class="text-[11px] text-slate-600"><strong>Evidencia / Detalle:</strong> ${escapeHtml(f.obs)} <span class="text-slate-400">(${f.legal})</span></p>
+            <div class="p-2.5 rounded-lg bg-white border border-slate-200 text-xs text-forest-800">
+              <strong><i class="fa-solid fa-wrench mr-1 text-forest-600"></i> Acción Recomendada:</strong> ${escapeHtml(f.action)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCharts(diag) {
+      const ctxSub = document.getElementById('chart-subplans').getContext('2d');
+      if (chartSubplansInstance) chartSubplansInstance.destroy();
+
+      const labels = diag.subplanScores.map(s => s.code);
+      const dataValues = diag.subplanScores.map(s => s.pct !== null ? s.pct : 0);
+      const bgColors = diag.subplanScores.map(s => {
+        if (s.pct === null) return '#CBD5E1';
+        if (s.pct >= 90) return '#10B981';
+        if (s.pct >= 60) return '#F59E0B';
+        return '#EF4444';
+      });
+
+      chartSubplansInstance = new Chart(ctxSub, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '% Cumplimiento',
+            data: dataValues,
+            backgroundColor: bgColors,
+            borderRadius: 6,
+            barThickness: 22
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: (ctx) => diag.subplanScores[ctx.dataIndex].title
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { callback: val => val + '%', font: { size: 11 } },
+              grid: { color: '#F1F5F9' }
+            },
+            x: {
+              ticks: { font: { size: 11, weight: '600' } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+
+      const ctxFind = document.getElementById('chart-findings').getContext('2d');
+      if (chartFindingsInstance) chartFindingsInstance.destroy();
+
+      const hasData = (diag.cCount + diag.ncCount + diag.naCount + diag.lmpExceedCount) > 0;
+      chartFindingsInstance = new Chart(ctxFind, {
+        type: 'doughnut',
+        data: {
+          labels: ['Cumple (C)', 'No Cumple (NC)', 'No Aplica (N/A)', 'Exceso LMP'],
+          datasets: [{
+            data: hasData
+              ? [diag.cCount, diag.ncCount, diag.naCount, diag.lmpExceedCount]
+              : [1, 0, 0, 0],
+            backgroundColor: hasData
+              ? ['#10B981', '#EF4444', '#94A3B8', '#991B1B']
+              : ['#E2E8F0', '#EF4444', '#94A3B8', '#991B1B'],
+            borderWidth: 2,
+            borderColor: '#FFFFFF'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '64%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 12, font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // ENVÍO DE DIAGNÓSTICO POR WHATSAPP / CORREO ELECTRÓNICO
+    // =========================================================================
+    function buildDiagnosticMessageText() {
+      const diag = computeDiagnostics();
+      const proj = document.getElementById('proj-name').value.trim() || 'Empresa / Proyecto';
+      const ruc = document.getElementById('proj-ruc').value.trim() || 'N/A';
+      const sector = document.getElementById('proj-sector').value;
+      const permit = document.getElementById('proj-permit').value;
+      const contactPerson = document.getElementById('proj-contact-person').value.trim();
+      const contactInfo = document.getElementById('proj-contact-info').value.trim();
+
+      const topFindings = diag.findingsList.slice(0, 4).map((f, i) => `  ${i + 1}. [${f.severity}] ${f.source}: ${f.description}`).join('\n');
+
+      return `Hola ${appState.consultant.name}, realicé el *Autodiagnóstico Ambiental (COA/RCOA/TULSMA)* de mi empresa y solicito asesoría/cotización:
+
+*Empresa:* ${proj} (RUC: ${ruc})
+*Sector:* ${sector}
+*Permiso SUIA:* ${permit}
+${contactPerson ? `*Responsable:* ${contactPerson}\n` : ''}${contactInfo ? `*Contacto:* ${contactInfo}\n` : ''}
+*RESULTADO DEL DIAGNÓSTICO:*
+• *Semáforo de Riesgo:* ${diag.overallLevel}
+• *Cumplimiento PMA:* ${diag.pmaCompliancePct}% (${diag.cCount} Cumple / ${diag.ncCount} No Cumple / ${diag.naCount} N/A)
+• *Excesos LMP Monitoreos:* ${diag.lmpExceedCount} parámetro(s)
+${topFindings ? `\n*Principales Hallazgos Detectados:*\n${topFindings}` : ''}`;
+    }
+
+    function sendDiagnosisViaWhatsApp() {
+      const rawPhone = (appState.consultant.phone || '').replace(/[^\d]/g, '');
+      const message = encodeURIComponent(buildDiagnosticMessageText());
+      window.open(`https://wa.me/${rawPhone}?text=${message}`, '_blank');
+    }
+
+    function sendDiagnosisViaEmail() {
+      const emailTo = (appState.consultant.email || '').trim();
+      const proj = document.getElementById('proj-name').value.trim() || 'Empresa';
+      const subject = encodeURIComponent(`Solicitud de Asesoría Ambiental - Diagnóstico ${proj}`);
+      const body = encodeURIComponent(buildDiagnosticMessageText().replace(/\*/g, ''));
+      window.location.href = `mailto:${emailTo}?subject=${subject}&body=${body}`;
+    }
+
+    function copyExecutiveSummary() {
+      const textarea = document.createElement('textarea');
+      textarea.value = buildDiagnosticMessageText().replace(/\*/g, '');
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Resumen ejecutivo copiado al portapapeles.', 'success');
+      } catch (err) {
+        showToast('No se pudo copiar automáticamente.', 'warning');
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // =========================================================================
+    // REINICIO DE FORMULARIO
+    // =========================================================================
+    function resetAllData() {
+      document.getElementById('proj-name').value = '';
+      document.getElementById('proj-ruc').value = '';
+      document.getElementById('proj-location').value = '';
+      document.getElementById('proj-suia').value = '';
+      document.getElementById('proj-contact-person').value = '';
+      document.getElementById('proj-contact-info').value = '';
+
+      PMA_SUBPLANS.forEach(sp => {
+        sp.items.forEach(item => {
+          appState.pma[item.id] = { status: '', obs: '' };
+        });
+      });
+
+      ['agua', 'aire', 'ruido'].forEach(m => {
+        document.getElementById(`active-${m}`).checked = false;
+        const fb = document.getElementById(`upload-feedback-${m}`);
+        if (fb) fb.classList.add('hidden');
+      });
+
+      appState.monitoring = {
+        agua: { ph: '', dbo5: '', dqo: '', sst: '', ayg: '' },
+        aire: { pm10: '', pm25: '', so2: '', no2: '', co: '' },
+        ruido: { diurno: '', nocturno: '' }
+      };
+
+      renderPMASubplans();
+      renderMonitoringTables();
+      evaluateAll();
+      switchTab(1);
+      showToast('Formulario reiniciado correctamente.', 'info');
+    }
+
+    // Toast Notification Helper
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      let colors = 'bg-brand-900 text-white border-brand-700';
+      let icon = 'fa-circle-info text-sky-400';
+
+      if (type === 'success') {
+        colors = 'bg-forest-800 text-white border-emerald-600';
+        icon = 'fa-circle-check text-emerald-400';
+      } else if (type === 'warning') {
+        colors = 'bg-amber-900 text-white border-amber-600';
+        icon = 'fa-triangle-exclamation text-amber-400';
+      }
+
+      toast.className = `px-4 py-3 rounded-xl border shadow-lg text-xs font-medium flex items-center gap-2.5 transition-all duration-300 ${colors}`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
